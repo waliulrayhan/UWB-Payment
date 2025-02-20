@@ -50,31 +50,23 @@ dhaka_metro_fare = struct(...
                       'Mirpur_11', 50, 'Mirpur_10', 40, 'Kazipara', 30, 'Shewrapara', 20, 'Agargaon', 0) ...
 );
 
-% Define Passengers - Added Balance Field
-passengers = struct();
-passengers(1).ID = 'P001';
-passengers(1).Position = [0, 0];
-passengers(1).Status = 'Waiting';
-passengers(1).EntryStation = '';
-passengers(1).EntryTime = [];
-passengers(1).Balance = 100;  % Initialize balance (BDT 100)
-
-passengers(2).ID = 'P002';
-passengers(2).Position = [0, 0];
-passengers(2).Status = 'Waiting';
-passengers(2).EntryStation = '';
-passengers(2).EntryTime = [];
-passengers(2).Balance = 80;  % Initialize balance (BDT 80)
-
-passengers(3).ID = 'P003';
-passengers(3).Position = [0, 0];
-passengers(3).Status = 'Waiting';
-passengers(3).EntryStation = '';
-passengers(3).EntryTime = [];
-passengers(3).Balance = 40;  % Initialize balance (BDT 50)
-
-
-% [Previous helper functions remain the same]
+% ---------------------------
+% Function: Generate Random Passengers
+% ---------------------------
+function passengers = generateRandomPassengers(num_passengers, min_balance, max_balance, stations)
+    passengers = struct();
+    
+    for i = 1:num_passengers
+        % Generate passenger ID with leading zeros
+        passengers(i).ID = sprintf('P%03d', i);
+        passengers(i).Position = [0, 0];
+        passengers(i).Status = 'Waiting';
+        passengers(i).EntryStation = '';
+        passengers(i).EntryTime = [];
+        % Generate random balance between min and max
+        passengers(i).Balance = min_balance + rand() * (max_balance - min_balance);
+    end
+end
 
 % ---------------------------
 % Helper Function: Convert Station Name to Struct Field Format
@@ -251,21 +243,37 @@ disp("Dhaka Metro UWB Simulation Started...");
 disp("Available Stations:");
 disp(join(station_display_names, ", "));
 
-% Define passengers dynamically
-passengers(1) = enterStation(passengers(1), "P001", "Uttara North", stations, station_positions);
-passengers(2) = enterStation(passengers(2), "P002", "Kazipara", stations, station_positions);
-passengers(3) = enterStation(passengers(3), "P003", "Pallabi", stations, station_positions);
+% Generate 5 random passengers with balances between 50 and 200 BDT
+num_passengers = 5;
+passengers = generateRandomPassengers(num_passengers, 20, 200, stations);
 
-pause(1); % Simulate short waiting time
+% Process each passenger's journey
+for i = 1:num_passengers
+    % Generate random start and end stations
+    start_idx = randi(length(stations));
+    end_idx = start_idx;
+    % Ensure end station is different from start station
+    while end_idx == start_idx
+        end_idx = randi(length(stations));
+    end
+    
+    % Start journey
+    fprintf("\n🎫 Starting journey for %s:\n", passengers(i).ID);
+    
+    % Enter station
+    passengers = enterStation(passengers, passengers(i).ID, ...
+                            getDisplayName(stations(start_idx)), stations, station_positions);
+    pause(0.5); % Short delay between operations
+    
+    % Travel to destination
+    passengers = travelToStation(passengers, passengers(i).ID, ...
+                               getDisplayName(stations(end_idx)), stations, station_positions);
+    pause(0.5); % Short delay between operations
+    
+    % Exit and calculate fare
+    passengers = exitStation(passengers, passengers(i).ID, ...
+                           getDisplayName(stations(end_idx)), dhaka_metro_fare);
+    pause(1); % Longer delay between passengers
+end
 
-% Move all passengers to different destinations
-passengers(1) = travelToStation(passengers(1), "P001", "Mirpur 10", stations, station_positions);
-passengers(2) = travelToStation(passengers(2), "P002", "Agargaon", stations, station_positions);
-passengers(3) = travelToStation(passengers(3), "P003", "Shewrapara", stations, station_positions);
-
-pause(1); % Simulate short waiting time
-
-% Exit all passengers and calculate fare
-passengers(1) = exitStation(passengers(1), "P001", "Mirpur 10", dhaka_metro_fare);
-passengers(2) = exitStation(passengers(2), "P002", "Agargaon", dhaka_metro_fare);
-passengers(3) = exitStation(passengers(3), "P003", "Shewrapara", dhaka_metro_fare);
+disp("Simulation completed!");
